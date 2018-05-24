@@ -38,7 +38,7 @@ import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedData;
 
 /**
- * An example for timestamp-singing a PDF for PADeS-Specification. The document will only be changed
+ * An example for timestamp-signing a PDF for PADeS-Specification. The document will only be changed
  * in its existing signature by a signed timestamp (A timestamp and the Hash-Value of the document
  * are signed by a Time Stamp Authority (TSA)).
  *
@@ -235,7 +235,7 @@ public class CreateEmbeddedTimeStamp
         String tsaUrl = null;
         for (int i = 0; i < args.length; i++)
         {
-            if (args[i].equals("-tsa"))
+            if ("-tsa".equals(args[i]))
             {
                 i++;
                 if (i >= args.length)

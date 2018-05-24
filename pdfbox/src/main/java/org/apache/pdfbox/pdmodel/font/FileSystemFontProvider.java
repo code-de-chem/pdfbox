@@ -44,7 +44,6 @@ import org.apache.fontbox.ttf.TrueTypeCollection.TrueTypeFontProcessor;
 import org.apache.fontbox.ttf.TrueTypeFont;
 import org.apache.fontbox.type1.Type1Font;
 import org.apache.fontbox.util.autodetect.FontFileFinder;
-import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.util.Charsets;
 
 /**
@@ -290,80 +289,81 @@ final class FileSystemFontProvider extends FontProvider
      */
     private void saveDiskCache()
     {
-        BufferedWriter writer = null;
+        File file = null;
         try
         {
-            File file = getDiskCacheFile();
-            try
+            file = getDiskCacheFile();
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file)))
             {
-                writer = new BufferedWriter(new FileWriter(file));
+                for (FSFontInfo fontInfo : fontInfoList)
+                {
+                    writeFontInfo(writer, fontInfo);
+                }
             }
-            catch (SecurityException e)
+            catch (IOException e)
             {
-                LOG.debug("Couldn't create writer for " + file.getAbsolutePath(), e);
-                return;
+                LOG.warn("Could not write to font cache", e);
+                LOG.warn("Installed fonts information will have to be reloaded for each start");
+                LOG.warn("You can assign a directory to the 'pdfbox.fontcache' property");
             }
 
-            for (FSFontInfo fontInfo : fontInfoList)
+        }
+        catch (SecurityException e)
+        {
+            LOG.debug("Couldn't create writer for font cache file", e);
+            return;
+        }
+    }
+
+    private void writeFontInfo(BufferedWriter writer, FSFontInfo fontInfo) throws IOException
+    {
+        writer.write(fontInfo.postScriptName.trim());
+        writer.write("|");
+        writer.write(fontInfo.format.toString());
+        writer.write("|");
+        if (fontInfo.cidSystemInfo != null)
+        {
+            writer.write(fontInfo.cidSystemInfo.getRegistry() + '-' +
+                            fontInfo.cidSystemInfo.getOrdering() + '-' +
+                            fontInfo.cidSystemInfo.getSupplement());
+        }
+        writer.write("|");
+        if (fontInfo.usWeightClass > -1)
+        {
+            writer.write(Integer.toHexString(fontInfo.usWeightClass));
+        }
+        writer.write("|");
+        if (fontInfo.sFamilyClass > -1)
+        {
+            writer.write(Integer.toHexString(fontInfo.sFamilyClass));
+        }
+        writer.write("|");
+        writer.write(Integer.toHexString(fontInfo.ulCodePageRange1));
+        writer.write("|");
+        writer.write(Integer.toHexString(fontInfo.ulCodePageRange2));
+        writer.write("|");
+        if (fontInfo.macStyle > -1)
+        {
+            writer.write(Integer.toHexString(fontInfo.macStyle));
+        }
+        writer.write("|");
+        if (fontInfo.panose != null)
+        {
+            byte[] bytes = fontInfo.panose.getBytes();
+            for (int i = 0; i < 10; i ++)
             {
-                writer.write(fontInfo.postScriptName.trim());
-                writer.write("|");
-                writer.write(fontInfo.format.toString());
-                writer.write("|");
-                if (fontInfo.cidSystemInfo != null)
+                String str = Integer.toHexString(bytes[i]);
+                if (str.length() == 1)
                 {
-                    writer.write(fontInfo.cidSystemInfo.getRegistry() + '-' +
-                                 fontInfo.cidSystemInfo.getOrdering() + '-' +
-                                 fontInfo.cidSystemInfo.getSupplement());
+                    writer.write('0');
                 }
-                writer.write("|");
-                if (fontInfo.usWeightClass > -1)
-                {
-                    writer.write(Integer.toHexString(fontInfo.usWeightClass));
-                }
-                writer.write("|");
-                if (fontInfo.sFamilyClass > -1)
-                {
-                    writer.write(Integer.toHexString(fontInfo.sFamilyClass));
-                }
-                writer.write("|");
-                writer.write(Integer.toHexString(fontInfo.ulCodePageRange1));
-                writer.write("|");
-                writer.write(Integer.toHexString(fontInfo.ulCodePageRange2));
-                writer.write("|");
-                if (fontInfo.macStyle > -1)
-                {
-                    writer.write(Integer.toHexString(fontInfo.macStyle));
-                }
-                writer.write("|");
-                if (fontInfo.panose != null)
-                {
-                    byte[] bytes = fontInfo.panose.getBytes();
-                    for (int i = 0; i < 10; i ++)
-                    {
-                        String str = Integer.toHexString(bytes[i]);
-                        if (str.length() == 1)
-                        {
-                            writer.write('0');
-                        }
-                        writer.write(str);
-                    }
-                }
-                writer.write("|");
-                writer.write(fontInfo.file.getAbsolutePath());
-                writer.newLine();
+                writer.write(str);
             }
         }
-        catch (IOException e)
-        {
-            LOG.warn("Could not write to font cache", e);
-            LOG.warn("Installed fonts information will have to be reloaded for each start");
-            LOG.warn("You can assign a directory to the 'pdfbox.fontcache' property");
-        }
-        finally
-        {
-            IOUtils.closeQuietly(writer);
-        }
+        writer.write("|");
+        writer.write(fontInfo.file.getAbsolutePath());
+        writer.newLine();
     }
 
     /**
@@ -378,16 +378,20 @@ final class FileSystemFontProvider extends FontProvider
         }
         
         List<FSFontInfo> results = new ArrayList<>();
-        File file = getDiskCacheFile();
+        
+        // Get the disk cache
+        File file = null;
         boolean fileExists = false;
         try
         {
+            file = getDiskCacheFile();
             fileExists = file.exists();
         }
         catch (SecurityException e)
         {
             LOG.debug("Error checking for file existence", e);
         }
+
         if (fileExists)
         {
             try (BufferedReader reader = new BufferedReader(new FileReader(file)))

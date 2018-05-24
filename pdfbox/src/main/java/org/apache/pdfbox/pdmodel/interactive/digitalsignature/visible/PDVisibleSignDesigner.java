@@ -274,13 +274,15 @@ public class PDVisibleSignDesigner
     /**
      * Zoom signature image with some percent.
      * 
-     * @param percent increase image with x percent.
+     * @param percent increase (positive value) or decrease (negative value) image with x percent.
      * @return Visible Signature Configuration Object
      */
     public PDVisibleSignDesigner zoom(float percent)
     {
         imageHeight += (imageHeight * percent) / 100;
         imageWidth += (imageWidth * percent) / 100;
+        formatterRectangleParameters[2] = (int) imageWidth.floatValue();
+        formatterRectangleParameters[3] = (int) imageHeight.floatValue();
         return this;
     }
 
@@ -354,6 +356,7 @@ public class PDVisibleSignDesigner
     public PDVisibleSignDesigner width(float width)
     {
         this.imageWidth = width;
+        this.formatterRectangleParameters[2] = (int) width;
         return this;
     }
 
@@ -374,6 +377,7 @@ public class PDVisibleSignDesigner
     public PDVisibleSignDesigner height(float height)
     {
         this.imageHeight = height;
+        this.formatterRectangleParameters[3] = (int) height;
         return this;
     }
 
@@ -448,6 +452,8 @@ public class PDVisibleSignDesigner
         this.image = image;
         imageHeight = (float) image.getHeight();
         imageWidth = (float) image.getWidth();
+        formatterRectangleParameters[2] = image.getWidth();
+        formatterRectangleParameters[3] = image.getHeight();
     }
 
     /**

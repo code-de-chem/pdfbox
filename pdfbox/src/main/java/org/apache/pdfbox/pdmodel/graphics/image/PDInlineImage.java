@@ -17,6 +17,7 @@
 package org.apache.pdfbox.pdmodel.graphics.image;
 
 import java.awt.Paint;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,6 +28,7 @@ import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.filter.DecodeOptions;
 import org.apache.pdfbox.filter.DecodeResult;
 import org.apache.pdfbox.filter.Filter;
 import org.apache.pdfbox.filter.FilterFactory;
@@ -297,6 +299,13 @@ public final class PDInlineImage implements PDImage
     }
 
     @Override
+    public InputStream createInputStream(DecodeOptions options) throws IOException
+    {
+        // Decode options are irrelevant for inline image, as the data is always buffered.
+        return createInputStream();
+    }
+
+    @Override
     public InputStream createInputStream(List<String> stopFilters) throws IOException
     {
         List<String> filters = getFilters();
@@ -337,7 +346,13 @@ public final class PDInlineImage implements PDImage
     @Override
     public BufferedImage getImage() throws IOException
     {
-        return SampledImageReader.getRGBImage(this, getColorKeyMask());
+        return SampledImageReader.getRGBImage(this, null);
+    }
+
+    @Override
+    public BufferedImage getImage(Rectangle region, int subsampling) throws IOException
+    {
+        return SampledImageReader.getRGBImage(this, region, subsampling, null);
     }
 
     @Override
@@ -348,22 +363,6 @@ public final class PDInlineImage implements PDImage
             throw new IllegalStateException("Image is not a stencil");
         }
         return SampledImageReader.getStencilImage(this, paint);
-    }
-
-    /**
-     * Returns the color key mask array associated with this image, or null if
-     * there is none.
-     *
-     * @return Mask Image XObject
-     */
-    public COSArray getColorKeyMask()
-    {
-        COSBase mask = parameters.getDictionaryObject(COSName.IM, COSName.MASK);
-        if (mask instanceof COSArray)
-        {
-            return (COSArray) mask;
-        }
-        return null;
     }
 
     /**

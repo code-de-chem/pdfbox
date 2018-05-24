@@ -51,7 +51,7 @@ public abstract class PDCIDFont implements COSObjectable, PDFontLike, PDVectorFo
 
     private final Map<Integer, Float> verticalDisplacementY = new HashMap<>(); // w1y
     private final Map<Integer, Vector> positionVectors = new HashMap<>();     // v
-    private final float[] dw2 = new float[] { 880, -1000 };
+    private float[] dw2 = new float[] { 880, -1000 };
 
     protected final COSDictionary dict;
     private PDFontDescriptor fontDescriptor;
@@ -223,7 +223,7 @@ public abstract class PDCIDFont implements COSObjectable, PDFontLike, PDVectorFo
      */
     private float getDefaultWidth()
     {
-        if (defaultWidth == 0)
+        if (Float.compare(defaultWidth, 0) == 0)
         {
             COSBase base = dict.getDictionaryObject(COSName.DW);
             if (base instanceof COSNumber)
@@ -256,6 +256,12 @@ public abstract class PDCIDFont implements COSObjectable, PDFontLike, PDVectorFo
             width = getDefaultWidth();
         }
         return width;
+    }
+
+    @Override
+    public boolean hasExplicitWidth(int code) throws IOException
+    {
+        return widths.get(codeToCID(code)) != null;
     }
 
     @Override
@@ -309,7 +315,7 @@ public abstract class PDCIDFont implements COSObjectable, PDFontLike, PDVectorFo
     // todo: this method is highly suspicious, the average glyph width is not usually a good metric
     public float getAverageFontWidth()
     {
-        if (averageWidth == 0)
+        if (Float.compare(averageWidth, 0) == 0)
         {
             float totalWidths = 0.0f;
             int characterCount = 0;
@@ -362,6 +368,8 @@ public abstract class PDCIDFont implements COSObjectable, PDFontLike, PDVectorFo
      * @throws java.io.IOException
      */
     public abstract int codeToGID(int code) throws IOException;
+
+    public abstract byte[] encodeGlyphId(int glyphId);
 
     /**
      * Encodes the given Unicode code point for use in a PDF content stream.

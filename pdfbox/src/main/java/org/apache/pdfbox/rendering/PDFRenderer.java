@@ -53,6 +53,8 @@ public class PDFRenderer
         }
     };
 
+    private boolean subsamplingAllowed = false;
+
     /**
      * Creates a new PDFRenderer.
      * @param document the document to render
@@ -82,6 +84,34 @@ public class PDFRenderer
     public void setAnnotationsFilter(AnnotationFilter annotationsFilter)
     {
         this.annotationFilter = annotationsFilter;
+    }
+
+    /**
+     * Value indicating if the renderer is allowed to subsample images before drawing, according to
+     * image dimensions and requested scale.
+     *
+     * Subsampling may be faster and less memory-intensive in some cases, but it may also lead to
+     * loss of quality, especially in images with high spatial frequency.
+     *
+     * @return true if subsampling of images is allowed, false otherwise.
+     */
+    public boolean isSubsamplingAllowed()
+    {
+        return subsamplingAllowed;
+    }
+
+    /**
+     * Sets a value instructing the renderer whether it is allowed to subsample images before
+     * drawing. The subsampling frequency is determined according to image size and requested scale.
+     *
+     * Subsampling may be faster and less memory-intensive in some cases, but it may also lead to
+     * loss of quality, especially in images with high spatial frequency.
+     *
+     * @param subsamplingAllowed The new value indicating if subsampling is allowed.
+     */
+    public void setSubsamplingAllowed(boolean subsamplingAllowed)
+    {
+        this.subsamplingAllowed = subsamplingAllowed;
     }
 
     /**
@@ -187,10 +217,10 @@ public class PDFRenderer
         }
         g.clearRect(0, 0, image.getWidth(), image.getHeight());
         
-        transform(g, page, scale);
+        transform(g, page, scale, scale);
 
         // the end-user may provide a custom PageDrawer
-        PageDrawerParameters parameters = new PageDrawerParameters(this, page);
+        PageDrawerParameters parameters = new PageDrawerParameters(this, page, subsamplingAllowed);
         PageDrawer drawer = createPageDrawer(parameters);
         drawer.drawPage(g, page.getCropBox());       
         
@@ -233,24 +263,39 @@ public class PDFRenderer
     public void renderPageToGraphics(int pageIndex, Graphics2D graphics, float scale)
             throws IOException
     {
+        renderPageToGraphics(pageIndex, graphics, scale, scale);
+    }
+
+    /**
+     * Renders a given page to an AWT Graphics2D instance.
+     * 
+     * @param pageIndex the zero-based index of the page to be converted
+     * @param graphics the Graphics2D on which to draw the page
+     * @param scaleX the scale to draw the page at for the x-axis
+     * @param scaleY the scale to draw the page at for the y-axis
+     * @throws IOException if the PDF cannot be read
+     */
+    public void renderPageToGraphics(int pageIndex, Graphics2D graphics, float scaleX, float scaleY)
+            throws IOException
+    {
         PDPage page = document.getPage(pageIndex);
         // TODO need width/wight calculations? should these be in PageDrawer?
 
-        transform(graphics, page, scale);
+        transform(graphics, page, scaleX, scaleY);
 
         PDRectangle cropBox = page.getCropBox();
         graphics.clearRect(0, 0, (int) cropBox.getWidth(), (int) cropBox.getHeight());
 
         // the end-user may provide a custom PageDrawer
-        PageDrawerParameters parameters = new PageDrawerParameters(this, page);
+        PageDrawerParameters parameters = new PageDrawerParameters(this, page, subsamplingAllowed);
         PageDrawer drawer = createPageDrawer(parameters);
         drawer.drawPage(graphics, cropBox);
     }
 
     // scale rotate translate
-    private void transform(Graphics2D graphics, PDPage page, float scale)
+    private void transform(Graphics2D graphics, PDPage page, float scaleX, float scaleY)
     {
-        graphics.scale(scale, scale);
+        graphics.scale(scaleX, scaleY);
 
         // TODO should we be passing the scale to PageDrawer rather than messing with Graphics?
         int rotationAngle = page.getRotation();

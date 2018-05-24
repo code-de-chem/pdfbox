@@ -56,21 +56,7 @@ public final class COSUtils
      */
     public static boolean isDictionary(COSBase elt, COSDocument doc)
     {
-        if (elt instanceof COSObject)
-        {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) elt);
-                COSObject obj = doc.getObjectFromPool(key);
-                return (obj != null && obj.getObject() instanceof COSDictionary);
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning false", e);
-                return false;
-            }
-        }
-        return (elt instanceof COSDictionary);
+        return isClass(elt, doc, COSDictionary.class);
     }
 
     /**
@@ -84,17 +70,10 @@ public final class COSUtils
     {
         if (elt instanceof COSObject)
         {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) elt);
-                COSObject obj = doc.getObjectFromPool(key);
-                return (obj != null && (obj.getObject() instanceof COSString || obj.getObject() instanceof COSName));
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning false", e);
-                return false;
-            }
+
+            COSObjectKey key = new COSObjectKey((COSObject) elt);
+            COSObject obj = doc.getObjectFromPool(key);
+            return (obj != null && (obj.getObject() instanceof COSString || obj.getObject() instanceof COSName));
         }
 
         return (elt instanceof COSString || elt instanceof COSName);
@@ -109,22 +88,7 @@ public final class COSUtils
      */
     public static boolean isStream(COSBase elt, COSDocument doc)
     {
-        if (elt instanceof COSObject)
-        {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) elt);
-                COSObject obj = doc.getObjectFromPool(key);
-                return (obj != null && obj.getObject() instanceof COSStream);
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning false", e);
-                return false;
-            }
-        }
-
-        return (elt instanceof COSStream);
+        return isClass(elt, doc, COSStream.class);
     }
 
     /**
@@ -136,22 +100,27 @@ public final class COSUtils
      */
     public static boolean isInteger(COSBase elt, COSDocument doc)
     {
+        return isClass(elt, doc, COSInteger.class);
+    }
+
+    /**
+     * return true if the elt is of class or a reference to a that class.
+     * 
+     * @param elt the object to check.
+     * @param doc the document.
+     * @param claz the class.
+     * @return true if the object is a of that class or a reference to it.
+     */
+    private static boolean isClass(COSBase elt, COSDocument doc, Class claz)
+    {
         if (elt instanceof COSObject)
         {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) elt);
-                COSObject obj = doc.getObjectFromPool(key);
-                return (obj != null && obj.getObject() instanceof COSInteger);
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning false", e);
-                return false;
-            }
+            COSObjectKey key = new COSObjectKey((COSObject) elt);
+            COSObject obj = doc.getObjectFromPool(key);
+            return (obj != null && claz.isInstance(obj.getObject()));
         }
 
-        return (elt instanceof COSInteger);
+        return claz.isInstance(elt);
     }
 
     /**
@@ -175,22 +144,7 @@ public final class COSUtils
      */
     public static boolean isFloat(COSBase elt, COSDocument doc)
     {
-        if (elt instanceof COSObject)
-        {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) elt);
-                COSObject obj = doc.getObjectFromPool(key);
-                return (obj != null && obj.getObject() instanceof COSFloat);
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning false", e);
-                return false;
-            }
-        }
-
-        return (elt instanceof COSFloat);
+        return isClass(elt, doc, COSFloat.class);
     }
 
     /**
@@ -202,22 +156,7 @@ public final class COSUtils
      */
     public static boolean isArray(COSBase elt, COSDocument doc)
     {
-        if (elt instanceof COSObject)
-        {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) elt);
-                COSObject obj = doc.getObjectFromPool(key);
-                return (obj != null && obj.getObject() instanceof COSArray);
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning false", e);
-                return false;
-            }
-        }
-
-        return (elt instanceof COSArray);
+        return isClass(elt, doc, COSArray.class);
     }
 
     /**
@@ -232,24 +171,7 @@ public final class COSUtils
     {
         if (cbase instanceof COSObject)
         {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) cbase);
-                COSObject obj = cDoc.getObjectFromPool(key);
-                if (obj != null && obj.getObject() instanceof COSArray)
-                {
-                    return (COSArray) obj.getObject();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning null", e);
-                return null;
-            }
+            return (COSArray) getCOSObjectAsClass((COSObject) cbase, cDoc, COSArray.class);
         }
         else if (cbase instanceof COSArray)
         {
@@ -274,28 +196,21 @@ public final class COSUtils
     {
         if (cbase instanceof COSObject)
         {
-            try
+            COSObjectKey key = new COSObjectKey((COSObject) cbase);
+            COSObject obj = cDoc.getObjectFromPool(key);
+            if (obj != null && obj.getObject() instanceof COSString)
             {
-                COSObjectKey key = new COSObjectKey((COSObject) cbase);
-                COSObject obj = cDoc.getObjectFromPool(key);
-                if (obj != null && obj.getObject() instanceof COSString)
-                {
-                    return ((COSString) obj.getObject()).getString();
-                }
-                else if (obj != null && obj.getObject() instanceof COSName)
-                {
-                    return ((COSName) obj.getObject()).getName();
-                }
-                else
-                {
-                    return null;
-                }
+                return ((COSString) obj.getObject()).getString();
             }
-            catch (IOException e)
+            else if (obj != null && obj.getObject() instanceof COSName)
             {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning null", e);
+                return ((COSName) obj.getObject()).getName();
+            }
+            else
+            {
                 return null;
             }
+
         }
         else if (cbase instanceof COSString)
         {
@@ -323,24 +238,7 @@ public final class COSUtils
     {
         if (cbase instanceof COSObject)
         {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) cbase);
-                COSObject obj = cDoc.getObjectFromPool(key);
-                if (obj != null && obj.getObject() instanceof COSDictionary)
-                {
-                    return (COSDictionary) obj.getObject();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning null", e);
-                return null;
-            }
+            return (COSDictionary) getCOSObjectAsClass((COSObject) cbase, cDoc, COSDictionary.class);
         }
         else if (cbase instanceof COSDictionary)
         {
@@ -364,24 +262,7 @@ public final class COSUtils
     {
         if (cbase instanceof COSObject)
         {
-            try
-            {
-                COSObjectKey key = new COSObjectKey((COSObject) cbase);
-                COSObject obj = cDoc.getObjectFromPool(key);
-                if (obj != null && obj.getObject() instanceof COSStream)
-                {
-                    return (COSStream) obj.getObject();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            catch (IOException e)
-            {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning null", e);
-                return null;
-            }
+            return (COSStream) getCOSObjectAsClass((COSObject) cbase, cDoc, COSStream.class);
         }
         else if (cbase instanceof COSStream)
         {
@@ -405,26 +286,19 @@ public final class COSUtils
     {
         if (cbase instanceof COSObject)
         {
-            try
+
+            COSObjectKey key = new COSObjectKey((COSObject) cbase);
+            COSObject obj = cDoc.getObjectFromPool(key);
+            if (obj == null)
             {
-                COSObjectKey key = new COSObjectKey((COSObject) cbase);
-                COSObject obj = cDoc.getObjectFromPool(key);
-                if (obj == null)
-                {
-                    return null;
-                }
-                else if (obj.getObject() instanceof COSNumber)
-                {
-                    return ((COSNumber) obj.getObject()).floatValue();
-                }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
-            catch (IOException e)
+            else if (obj.getObject() instanceof COSNumber)
             {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning null", e);
+                return ((COSNumber) obj.getObject()).floatValue();
+            }
+            else
+            {
                 return null;
             }
         }
@@ -450,26 +324,18 @@ public final class COSUtils
     {
         if (cbase instanceof COSObject)
         {
-            try
+            COSObjectKey key = new COSObjectKey((COSObject) cbase);
+            COSObject obj = cDoc.getObjectFromPool(key);
+            if (obj == null)
             {
-                COSObjectKey key = new COSObjectKey((COSObject) cbase);
-                COSObject obj = cDoc.getObjectFromPool(key);
-                if (obj == null)
-                {
-                    return null;
-                }
-                else if (obj.getObject() instanceof COSNumber)
-                {
-                    return ((COSNumber) obj.getObject()).intValue();
-                }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
-            catch (IOException e)
+            else if (obj.getObject() instanceof COSNumber)
             {
-                LOGGER.debug("Couldn't get COSObject from object pool - returning null", e);
+                return ((COSNumber) obj.getObject()).intValue();
+            }
+            else
+            {
                 return null;
             }
         }
@@ -515,6 +381,30 @@ public final class COSUtils
         if (document != null)
         {
             closeDocumentQuietly(document.getDocument());
+        }
+    }
+    
+    /**
+     * Return the COSObject object as class if the COSObject object is a reference to an object of
+     * that class. If not, then this method returns null;
+     *
+     * @param cosObject the object to get.
+     * @param cDoc the document.
+     * @param claz the class.
+     * @return the object as class if the object is a reference to that class. Returns null
+     * otherwise.
+     */
+    private static COSBase getCOSObjectAsClass(COSObject cosObject, COSDocument cDoc, Class claz)
+    {
+        COSObjectKey key = new COSObjectKey(cosObject);
+        COSObject obj = cDoc.getObjectFromPool(key);
+        if (obj != null && claz.isInstance(obj.getObject()))
+        {
+            return obj.getObject();
+        }
+        else
+        {
+            return null;
         }
     }
 }

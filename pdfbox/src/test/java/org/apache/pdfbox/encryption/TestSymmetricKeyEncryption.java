@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -102,7 +103,7 @@ public class TestSymmetricKeyEncryption extends TestCase
      * Test that permissions work as intended: the user psw ("user") is enough
      * to open the PDF with possibly restricted rights, the owner psw ("owner")
      * gives full permissions. The 3 files of this test were created by Maruan
-     * Sayhoun, NOT with PDFBox, but with Adobe Acrobat to ensure "the gold
+     * Sahyoun, NOT with PDFBox, but with Adobe Acrobat to ensure "the gold
      * standard". The restricted permissions prevent printing and text
      * extraction. In the 128 and 256 bit encrypted files, AssembleDocument,
      * ExtractForAccessibility and PrintDegraded are also disabled.
@@ -403,6 +404,6 @@ public class TestSymmetricKeyEncryption extends TestCase
 
     private byte[] getFileAsByteArray(File f) throws IOException
     {
-        return IOUtils.toByteArray(new FileInputStream(f));
+        return Files.readAllBytes(f.toPath());
     }
 }

@@ -22,7 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationInk;
-import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceContentStream;
+import org.apache.pdfbox.pdmodel.PDAppearanceContentStream;
 
 /**
  * Handler to generate the ink annotations appearance.
@@ -61,7 +61,7 @@ public class PDInkAppearanceHandler extends PDAbstractAppearanceHandler
         {
             try (PDAppearanceContentStream cs = getNormalAppearanceAsContentStream())
             {
-                handleOpacity(ink.getConstantOpacity());
+                setOpacity(cs, ink.getConstantOpacity());
 
                 cs.setStrokingColor(color);
                 if (ab.dashArray != null)

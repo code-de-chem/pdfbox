@@ -18,6 +18,7 @@ package org.apache.pdfbox.pdmodel.graphics.image;
 
 import java.awt.Graphics2D;
 import java.awt.Paint;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
@@ -39,6 +40,8 @@ import org.apache.pdfbox.cos.COSInputStream;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
+import org.apache.pdfbox.filter.DecodeOptions;
+import org.apache.pdfbox.filter.DecodeResult;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDResources;
@@ -65,6 +68,9 @@ public final class PDImageXObject extends PDXObject implements PDImage
 
     private SoftReference<BufferedImage> cachedImage;
     private PDColorSpace colorSpace;
+
+    // initialize to MAX_VALUE as we prefer lower subsampling when keeping/replacing cache.
+    private int cachedImageSubsampling = Integer.MAX_VALUE;
 
     /**
      * current resource dictionary (has color spaces)
@@ -123,15 +129,18 @@ public final class PDImageXObject extends PDXObject implements PDImage
      */
     public PDImageXObject(PDStream stream, PDResources resources) throws IOException
     {
-        this(stream, resources, stream.createInputStream());
-    }
-    
-    // repairs parameters using decode result
-    private PDImageXObject(PDStream stream, PDResources resources, COSInputStream input)
-    {
-        super(repair(stream, input), COSName.IMAGE);
+        super(stream, COSName.IMAGE);
         this.resources = resources;
-        this.colorSpace = input.getDecodeResult().getJPXColorSpace();
+        List<COSName> filters = stream.getFilters();
+        if (filters != null && !filters.isEmpty() && COSName.JPX_DECODE.equals(filters.get(filters.size()-1)))
+        {
+            try (COSInputStream is = stream.createInputStream())
+            {
+                DecodeResult decodeResult = is.getDecodeResult();
+                stream.getCOSObject().addAll(decodeResult.getParameters());
+                this.colorSpace = decodeResult.getJPXColorSpace();
+            }
+        }
     }
 
     /**
@@ -259,14 +268,25 @@ public final class PDImageXObject extends PDXObject implements PDImage
         }
         if (fileType.equals(FileType.TIFF))
         {
-            return CCITTFactory.createFromFile(doc, file);
+            try
+            {
+                return CCITTFactory.createFromFile(doc, file);
+            }
+            catch (IOException ex)
+            {
+                LOG.debug("Reading as TIFF failed, setting fileType to PNG", ex);
+                // Plan B: try reading with ImageIO
+                // common exception:
+                // First image in tiff is not CCITT T4 or T6 compressed
+                fileType = FileType.PNG;
+            }
         }
         if (fileType.equals(FileType.BMP) || fileType.equals(FileType.GIF) || fileType.equals(FileType.PNG))
         {
             BufferedImage bim = ImageIO.read(file);
             return LosslessFactory.createFromImage(doc, bim);
         }
-        throw new IllegalArgumentException("Image type not supported: " + file.getName());
+        throw new IllegalArgumentException("Image type " + fileType + " not supported: " + file.getName());
     }
 
     /**
@@ -307,7 +327,18 @@ public final class PDImageXObject extends PDXObject implements PDImage
         }
         if (fileType.equals(FileType.TIFF))
         {
-            return CCITTFactory.createFromByteArray(document, byteArray);
+            try
+            {
+                return CCITTFactory.createFromByteArray(document, byteArray);
+            }
+            catch (IOException ex)
+            {
+                LOG.debug("Reading as TIFF failed, setting fileType to PNG", ex);
+                // Plan B: try reading with ImageIO
+                // common exception:
+                // First image in tiff is not CCITT T4 or T6 compressed
+                fileType = FileType.PNG;
+            }
         }
         if (fileType.equals(FileType.BMP) || fileType.equals(FileType.GIF) || fileType.equals(FileType.PNG))
         {
@@ -315,14 +346,7 @@ public final class PDImageXObject extends PDXObject implements PDImage
             BufferedImage bim = ImageIO.read(bais);
             return LosslessFactory.createFromImage(document, bim);
         }
-        throw new IllegalArgumentException("Image type not supported: " + name);
-    }
-
-    // repairs parameters using decode result
-    private static PDStream repair(PDStream stream, COSInputStream input)
-    {
-        stream.getCOSObject().addAll(input.getDecodeResult().getParameters());
-        return stream;
+        throw new IllegalArgumentException("Image type " + fileType + " not supported: " + name);
     }
 
     /**
@@ -373,7 +397,16 @@ public final class PDImageXObject extends PDXObject implements PDImage
     @Override
     public BufferedImage getImage() throws IOException
     {
-        if (cachedImage != null)
+        return getImage(null, 1);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BufferedImage getImage(Rectangle region, int subsampling) throws IOException
+    {
+        if (region == null && subsampling == cachedImageSubsampling && cachedImage != null)
         {
             BufferedImage cached = cachedImage.get();
             if (cached != null)
@@ -381,9 +414,8 @@ public final class PDImageXObject extends PDXObject implements PDImage
                 return cached;
             }
         }
-
         // get image as RGB
-        BufferedImage image = SampledImageReader.getRGBImage(this, getColorKeyMask());
+        BufferedImage image = SampledImageReader.getRGBImage(this, region, subsampling, getColorKeyMask());
 
         // soft mask (overrides explicit mask)
         PDImageXObject softMask = getSoftMask();
@@ -401,7 +433,14 @@ public final class PDImageXObject extends PDXObject implements PDImage
             }
         }
 
-        cachedImage = new SoftReference<>(image);
+        if (region == null && subsampling <= cachedImageSubsampling)
+        {
+            // only cache full-image renders, and prefer lower subsampling frequency, as lower
+            // subsampling means higher quality and longer render times.
+            cachedImageSubsampling = subsampling;
+            cachedImage = new SoftReference<>(image);
+        }
+
         return image;
     }
 
@@ -498,10 +537,13 @@ public final class PDImageXObject extends PDXObject implements PDImage
     {
         BufferedImage image2 = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image2.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                           RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g.setRenderingHint(RenderingHints.KEY_RENDERING,
-                           RenderingHints.VALUE_RENDER_QUALITY);
+        if (getInterpolate())
+        {
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+        }
         g.drawImage(image, 0, 0, width, height, 0, 0, image.getWidth(), image.getHeight(), null);
         g.dispose();
         return image2;
@@ -626,6 +668,12 @@ public final class PDImageXObject extends PDXObject implements PDImage
     public InputStream createInputStream() throws IOException
     {
         return getStream().createInputStream();
+    }
+    
+    @Override
+    public InputStream createInputStream(DecodeOptions options) throws IOException
+    {
+        return getStream().createInputStream(options);
     }
 
     @Override

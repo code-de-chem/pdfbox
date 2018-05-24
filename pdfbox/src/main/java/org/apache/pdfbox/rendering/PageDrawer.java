@@ -42,7 +42,9 @@ import java.awt.image.DataBufferByte;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -95,6 +97,8 @@ public class PageDrawer extends PDFGraphicsStreamEngine
     // parent document renderer - note: this is needed for not-yet-implemented resource caching
     private final PDFRenderer renderer;
     
+    private final boolean subsamplingAllowed;
+    
     // the graphics device to draw to, xform is the initial transform of the device (i.e. DPI)
     private Graphics2D graphics;
     private AffineTransform xform;
@@ -115,8 +119,8 @@ public class PageDrawer extends PDFGraphicsStreamEngine
     // last clipping path
     private Area lastClip;
     
-    // buffered clipping area for text being drawn
-    private Area textClippingArea;
+    // shapes of glyphs being drawn to be used for clipping
+    private List<Shape> textClippings;
 
     // glyph caches
     private final Map<PDFont, GlyphCache> glyphCaches = new HashMap<>();
@@ -145,6 +149,7 @@ public class PageDrawer extends PDFGraphicsStreamEngine
     {
         super(parameters.getPage());
         this.renderer = parameters.getRenderer();
+        this.subsamplingAllowed = parameters.isSubsamplingAllowed();
     }
 
     /**
@@ -360,8 +365,8 @@ public class PageDrawer extends PDFGraphicsStreamEngine
      */
     private void beginTextClip()
     {
-        // buffer the text clip because it represents a single clipping area
-        textClippingArea = new Area();        
+        // buffer the text clippings because they represents a single clipping area
+        textClippings = new ArrayList<>();
     }
 
     /**
@@ -373,10 +378,17 @@ public class PageDrawer extends PDFGraphicsStreamEngine
         RenderingMode renderingMode = state.getTextState().getRenderingMode();
         
         // apply the buffered clip as one area
-        if (renderingMode.isClip() && !textClippingArea.isEmpty())
+        if (renderingMode.isClip() && !textClippings.isEmpty())
         {
-            state.intersectClippingPath(textClippingArea);
-            textClippingArea = null;
+            // PDFBOX-4150: this is much faster than using textClippingArea.add(new Area(glyph))
+            // https://stackoverflow.com/questions/21519007/fast-union-of-shapes-in-java
+            GeneralPath path = new GeneralPath();
+            for (Shape shape : textClippings)
+            {
+                path.append(shape, false);
+            }
+            state.intersectClippingPath(path);
+            textClippings = new ArrayList<>();
 
             // PDFBOX-3681: lastClip needs to be reset, because after intersection it is still the same 
             // object, thus setClip() would believe that it is cached.
@@ -424,7 +436,7 @@ public class PageDrawer extends PDFGraphicsStreamEngine
             // Stretch non-embedded glyph if it does not match the height/width contained in the PDF.
             // Vertical fonts have zero X displacement, so the following code scales to 0 if we don't skip it.
             // TODO: How should vertical fonts be handled?
-            if (!font.isEmbedded() && !font.isVertical())
+            if (!font.isEmbedded() && !font.isVertical() && !font.isStandard14() && font.hasExplicitWidth(code))
             {
                 float fontWidth = font.getWidthFromFont(code);
                 if (fontWidth > 0 && // ignore spaces
@@ -457,7 +469,7 @@ public class PageDrawer extends PDFGraphicsStreamEngine
 
             if (renderingMode.isClip())
             {
-                textClippingArea.add(new Area(glyph));
+                textClippings.add(glyph);
             }
         }
     }
@@ -954,8 +966,17 @@ public class PageDrawer extends PDFGraphicsStreamEngine
         }
         else
         {
-            // draw the image
-            drawBufferedImage(pdImage.getImage(), at);
+            if (subsamplingAllowed)
+            {
+                int subsampling = getSubsampling(pdImage, at);
+                // draw the subsampled image
+                drawBufferedImage(pdImage.getImage(null, subsampling), at);
+            }
+            else
+            {
+                // subsampling not allowed, draw the image
+                drawBufferedImage(pdImage.getImage(), at);
+            }
         }
 
         if (!pdImage.getInterpolate())
@@ -964,6 +985,38 @@ public class PageDrawer extends PDFGraphicsStreamEngine
             // the setRenderingHint method, so we re-set all hints, see PDFBOX-2302
             setRenderingHints();
         }
+    }
+
+    /**
+     * Calculated the subsampling frequency for a given PDImage based on the current transformation
+     * and its calculated transform
+     *
+     * @param pdImage PDImage to be drawn
+     * @param at Transform that will be applied to the image when drawing
+     * @return The rounded-down ratio of image pixels to drawn pixels. Returned value will always be
+     * >=1.
+     */
+    private int getSubsampling(PDImage pdImage, AffineTransform at)
+    {
+        // calculate subsampling according to the resulting image size
+        double scale = Math.abs(at.getDeterminant() * xform.getDeterminant());
+
+        int subsampling = (int) Math.floor(Math.sqrt(pdImage.getWidth() * pdImage.getHeight() / scale));
+        if (subsampling > 8)
+        {
+            subsampling = 8;
+        }
+        if (subsampling < 1)
+        {
+            subsampling = 1;
+        }
+        if (subsampling > pdImage.getWidth() || subsampling > pdImage.getHeight())
+        {
+            // For very small images it is possible that the subsampling would imply 0 size.
+            // To avoid problems, the subsampling is set to no less than the smallest dimension.
+            subsampling = Math.min(pdImage.getWidth(), pdImage.getHeight());
+        }
+        return subsampling;
     }
 
     private void drawBufferedImage(BufferedImage image, AffineTransform at) throws IOException

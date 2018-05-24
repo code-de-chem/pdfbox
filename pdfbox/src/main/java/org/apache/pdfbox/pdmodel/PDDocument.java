@@ -1389,19 +1389,32 @@ public class PDDocument implements Closeable
     {
         if (!document.isClosed())
         {
+             // Make sure that:
+            // - first Exception is kept
+            // - all IO resources are closed
+            // - there's a way to see which errors occured
+
+            IOException firstException = null;
+
             // close resources and COSWriter
             if (signingSupport != null)
             {
-                signingSupport.close();
+                firstException = IOUtils.closeAndLogException(signingSupport, LOG, "SigningSupport", firstException);
             }
 
             // close all intermediate I/O streams
-            document.close();
+            firstException = IOUtils.closeAndLogException(document, LOG, "COSDocument", firstException);
             
             // close the source PDF stream, if we read from one
             if (pdfSource != null)
             {
-                pdfSource.close();
+                firstException = IOUtils.closeAndLogException(pdfSource, LOG, "RandomAccessRead pdfSource", firstException);
+            }
+
+            // rethrow first exception to keep method contract
+            if (firstException != null)
+            {
+                throw firstException;
             }
         }
     }
@@ -1541,7 +1554,7 @@ public class PDDocument implements Closeable
     {
         float currentVersion = getVersion();
         // nothing to do?
-        if (newVersion == currentVersion)
+        if (Float.compare(newVersion,currentVersion) == 0)
         {
             return;
         }

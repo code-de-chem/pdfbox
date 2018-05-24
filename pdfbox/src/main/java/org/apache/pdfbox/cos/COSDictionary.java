@@ -683,7 +683,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a name and convert it to
-     * a string. Null is returned if the entry does not exist in the dictionary.
+     * a string.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -696,7 +696,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a name and convert it to
-     * a string. Null is returned if the entry does not exist in the dictionary.
+     * a string.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -744,7 +744,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a
-     * string. Null is returned if the entry does not exist in the dictionary.
+     * string.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The default value to return.
@@ -757,7 +757,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a
-     * string. Null is returned if the entry does not exist in the dictionary.
+     * string.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The default value to return.
@@ -801,7 +801,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a name and convert it to
-     * a string. Null is returned if the entry does not exist in the dictionary.
+     * a string.
      *
      * @param embedded The embedded dictionary.
      * @param key The key to the item in the dictionary.
@@ -815,7 +815,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a name and convert it to
-     * a string. Null is returned if the entry does not exist in the dictionary.
+     * a string.
      *
      * @param embedded The embedded dictionary.
      * @param key The key to the item in the dictionary.
@@ -863,11 +863,10 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
     }
 
     /**
-     * This is a convenience method that will get the dictionary object that is expected to be a date. Null is returned
-     * if the entry does not exist in the dictionary or if the date was invalid.
+     * This is a convenience method that will get the dictionary object that is expected to be a date.
      *
      * @param key The key to the item in the dictionary.
-     * @param defaultValue The default value to return.
+     * @param defaultValue The default value to return if the entry does not exist in the dictionary or if the date was invalid.
      * @return The name converted to a date.
      */
     public Calendar getDate(String key, Calendar defaultValue)
@@ -876,11 +875,10 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
     }
 
     /**
-     * This is a convenience method that will get the dictionary object that is expected to be a date. Null is returned
-     * if the entry does not exist in the dictionary or if the date was invalid.
+     * This is a convenience method that will get the dictionary object that is expected to be a date.
      *
      * @param key The key to the item in the dictionary.
-     * @param defaultValue The default value to return.
+     * @param defaultValue The default value to return if the entry does not exist in the dictionary or if the date was invalid.
      * @return The name converted to a date.
      */
     public Calendar getDate(COSName key, Calendar defaultValue)
@@ -900,9 +898,8 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
      * @param embedded The embedded dictionary to get.
      * @param key The key to the item in the dictionary.
      * @return The name converted to a string.
-     * @throws IOException If there is an error converting to a date.
      */
-    public Calendar getEmbeddedDate(String embedded, String key) throws IOException
+    public Calendar getEmbeddedDate(String embedded, String key)
     {
         return getEmbeddedDate(embedded, COSName.getPDFName(key), null);
     }
@@ -914,42 +911,34 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
      * @param embedded The embedded dictionary to get.
      * @param key The key to the item in the dictionary.
      * @return The name converted to a string.
-     *
-     * @throws IOException If there is an error converting to a date.
      */
-    public Calendar getEmbeddedDate(String embedded, COSName key) throws IOException
+    public Calendar getEmbeddedDate(String embedded, COSName key)
     {
         return getEmbeddedDate(embedded, key, null);
     }
 
     /**
-     * This is a convenience method that will get the dictionary object that is expected to be a date. Null is returned
-     * if the entry does not exist in the dictionary.
+     * This is a convenience method that will get the dictionary object that is expected to be a date.
      *
      * @param embedded The embedded dictionary to get.
      * @param key The key to the item in the dictionary.
-     * @param defaultValue The default value to return.
+     * @param defaultValue The default value to return if the entry does not exist in the dictionary or if the date was invalid.
      * @return The name converted to a string.
-     * @throws IOException If there is an error converting to a date.
      */
     public Calendar getEmbeddedDate(String embedded, String key, Calendar defaultValue)
-            throws IOException
     {
         return getEmbeddedDate(embedded, COSName.getPDFName(key), defaultValue);
     }
 
     /**
-     * This is a convenience method that will get the dictionary object that is expected to be a date. Null is returned
-     * if the entry does not exist in the dictionary.
+     * This is a convenience method that will get the dictionary object that is expected to be a date.
      *
      * @param embedded The embedded dictionary to get.
      * @param key The key to the item in the dictionary.
-     * @param defaultValue The default value to return.
+     * @param defaultValue The default value to return if the entry does not exist in the dictionary or if the date was invalid.
      * @return The name converted to a string.
-     * @throws IOException If there is an error converting to a date.
      */
     public Calendar getEmbeddedDate(String embedded, COSName key, Calendar defaultValue)
-            throws IOException
     {
         Calendar retval = defaultValue;
         COSDictionary eDic = (COSDictionary) getDictionaryObject(embedded);
@@ -1095,7 +1084,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param keyList The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1114,7 +1103,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1127,7 +1116,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the defaultvalue will be returned.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1140,7 +1129,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value -1 will be returned.
+     * dictionary value is null then the default value -1 will be returned.
      *
      * @param firstKey The first key to the item in the dictionary.
      * @param secondKey The second key to the item in the dictionary.
@@ -1153,7 +1142,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param firstKey The first key to the item in the dictionary.
      * @param secondKey The second key to the item in the dictionary.
@@ -1198,7 +1187,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an long. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param keyList The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1217,7 +1206,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1230,7 +1219,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an integer. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1273,7 +1262,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be a float. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.
@@ -1286,7 +1275,7 @@ public class COSDictionary extends COSBase implements COSUpdateInfo
 
     /**
      * This is a convenience method that will get the dictionary object that is expected to be an float. If the
-     * dictionary value is null then the default Value will be returned.
+     * dictionary value is null then the default value will be returned.
      *
      * @param key The key to the item in the dictionary.
      * @param defaultValue The value to return if the dictionary item is null.

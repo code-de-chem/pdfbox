@@ -26,7 +26,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -285,27 +284,15 @@ public class StreamPane implements ActionListener
             }
         }
 
-        private String getStringOfStream(InputStream ioStream, String encoding)
+        private String getStringOfStream(InputStream in, String encoding)
         {
-            ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int amountRead;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try
             {
-                while ((amountRead = ioStream.read(buffer, 0, buffer.length)) != -1)
-                {
-                    byteArray.write(buffer, 0, amountRead);
-                }
+                IOUtils.copy(in, baos);
+                return baos.toString(encoding);
             }
             catch (IOException e)
-            {
-                e.printStackTrace();
-            }
-            try
-            {
-                return byteArray.toString(encoding);
-            }
-            catch (UnsupportedEncodingException e)
             {
                 e.printStackTrace();
                 return null;

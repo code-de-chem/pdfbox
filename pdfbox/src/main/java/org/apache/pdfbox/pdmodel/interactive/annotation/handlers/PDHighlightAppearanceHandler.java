@@ -31,7 +31,7 @@ import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationHighlight;
-import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceContentStream;
+import org.apache.pdfbox.pdmodel.PDAppearanceContentStream;
 
 /**
  * 
@@ -111,7 +111,6 @@ public class PDHighlightAppearanceHandler extends PDAbstractAppearanceHandler
         {
             try (PDAppearanceContentStream cs = getNormalAppearanceAsContentStream())
             {
-                prepareResources();
                 PDExtendedGraphicsState r0 = new PDExtendedGraphicsState();
                 PDExtendedGraphicsState r1 = new PDExtendedGraphicsState();
                 r0.setAlphaSourceFlag(false);

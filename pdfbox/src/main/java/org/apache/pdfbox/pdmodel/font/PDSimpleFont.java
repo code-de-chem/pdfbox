@@ -27,6 +27,7 @@ import org.apache.fontbox.FontBoxFont;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.encoding.DictionaryEncoding;
 import org.apache.pdfbox.pdmodel.font.encoding.Encoding;
 import org.apache.pdfbox.pdmodel.font.encoding.GlyphList;
@@ -384,6 +385,16 @@ public abstract class PDSimpleFont extends PDFont
         return super.isStandard14();
     }
 
+    protected boolean isNonZeroBoundingBox (PDRectangle bbox)
+    {
+        return bbox != null && (
+            Float.compare(bbox.getLowerLeftX(), 0) != 0 ||
+            Float.compare(bbox.getLowerLeftY(), 0) != 0 ||
+            Float.compare(bbox.getUpperRightX(), 0) != 0 ||
+            Float.compare(bbox.getUpperRightY(), 0) != 0
+        );
+    }
+
     /**
      * Returns the path for the character with the given name. For some fonts, GIDs may be used
      * instead of names when calling this method.
@@ -421,6 +432,20 @@ public abstract class PDSimpleFont extends PDFont
     @Override
     public boolean willBeSubset()
     {
+        return false;
+    }
+
+    @Override
+    public boolean hasExplicitWidth(int code) throws IOException
+    {
+        if (dict.containsKey(COSName.WIDTHS))
+        {
+            int firstChar = dict.getInt(COSName.FIRST_CHAR, -1);
+            if (code >= firstChar && code - firstChar < getWidths().size())
+            {
+                return true;
+            }
+        }
         return false;
     }
 }

@@ -33,7 +33,7 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureInterface;
 
 /**
- * An example for timestamp-singing a PDF for PADeS-Specification. The document will be extended by
+ * An example for timestamp-signing a PDF for PADeS-Specification. The document will be extended by
  * a signed TimeStamp (another kind of signature) (Signed TimeStamp and Hash-Value of the document
  * are signed by a Time Stamp Authority (TSA)).
  *
@@ -150,7 +150,7 @@ public class CreateSignedTimeStamp implements SignatureInterface
         }
 
         String tsaUrl = null;
-        if (args[1].equals("-tsa"))
+        if ("-tsa".equals(args[1]))
         {
             tsaUrl = args[2];
         }

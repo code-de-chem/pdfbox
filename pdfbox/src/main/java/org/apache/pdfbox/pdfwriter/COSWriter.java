@@ -39,8 +39,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSBoolean;
@@ -77,8 +75,6 @@ import org.apache.pdfbox.util.Hex;
  */
 public class COSWriter implements ICOSVisitor, Closeable
 {
-    private static final Log LOG = LogFactory.getLog(COSWriter.class);
-
     /**
      * The dictionary open token.
      */
@@ -251,15 +247,13 @@ public class COSWriter implements ICOSVisitor, Closeable
 
     private void prepareIncrement(PDDocument doc)
     {
-      try
-      {
         if (doc != null)
         {
           COSDocument cosDoc = doc.getDocument();
           
           Map<COSObjectKey, Long> xrefTable = cosDoc.getXrefTable();
           Set<COSObjectKey> keySet = xrefTable.keySet();
-          long highestNumber=0;
+          long highestNumber = doc.getDocument().getHighestXRefObjectNumber();
           for ( COSObjectKey cosObjectKey : keySet ) 
           {
             COSBase object = cosDoc.getObjectFromPool(cosObjectKey).getObject();
@@ -280,11 +274,6 @@ public class COSWriter implements ICOSVisitor, Closeable
           }
           setNumber(highestNumber);
         }
-      }
-      catch (IOException e)
-      {
-          LOG.error(e,e);
-      }
     }
     
     /**
@@ -518,7 +507,12 @@ public class COSWriter implements ICOSVisitor, Closeable
             getStandardOutput().write(SPACE);
             getStandardOutput().write(OBJ);
             getStandardOutput().writeEOL();
-            obj.accept( this );
+            // null test added to please Sonar
+            // TODO: shouldn't all public methods be guarded against passing null. Passing null to most methods will
+            // fail with an NPE
+            if (obj != null) {
+                obj.accept( this );
+            }
             getStandardOutput().writeEOL();
             getStandardOutput().write(ENDOBJ);
             getStandardOutput().writeEOL();

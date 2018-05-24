@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -77,13 +78,13 @@ public class CreateVisibleSignature extends CreateSignatureBase
      * @param filename
      * @param x position of the signature field
      * @param y position of the signature field
-     * @param zoomPercent
-     * @param imageStream
+     * @param zoomPercent increase (positive value) or decrease (negative value) image with x percent.
+     * @param imageStream input stream of an image.
      * @param page the signature should be placed on
      * @throws IOException
      */
     public void setVisibleSignDesigner(String filename, int x, int y, int zoomPercent, 
-            FileInputStream imageStream, int page) 
+            InputStream imageStream, int page) 
             throws IOException
     {
         visibleSignDesigner = new PDVisibleSignDesigner(filename, imageStream, page);
@@ -93,11 +94,11 @@ public class CreateVisibleSignature extends CreateSignatureBase
     /**
      * Set visible signature designer for an existing signature field.
      * 
-     * @param zoomPercent
-     * @param imageStream
+     * @param zoomPercent increase (positive value) or decrease (negative value) image with x percent.
+     * @param imageStream input stream of an image.
      * @throws IOException
      */
-    public void setVisibleSignDesigner(int zoomPercent, FileInputStream imageStream) 
+    public void setVisibleSignDesigner(int zoomPercent, InputStream imageStream) 
             throws IOException
     {
         visibleSignDesigner = new PDVisibleSignDesigner(imageStream);
@@ -388,7 +389,7 @@ public class CreateVisibleSignature extends CreateSignatureBase
         boolean externalSig = false;
         for (int i = 0; i < args.length; i++)
         {
-            if (args[i].equals("-tsa"))
+            if ("-tsa".equals(args[i]))
             {
                 i++;
                 if (i >= args.length)
@@ -398,7 +399,7 @@ public class CreateVisibleSignature extends CreateSignatureBase
                 }
                 tsaUrl = args[i];
             }
-            if (args[i].equals("-e"))
+            if ("-e".equals(args[i]))
             {
                 externalSig = true;
             }
@@ -415,7 +416,7 @@ public class CreateVisibleSignature extends CreateSignatureBase
 
         File signedDocumentFile;
         int page;
-        try (FileInputStream imageStream = new FileInputStream(args[3]))
+        try (InputStream imageStream = new FileInputStream(args[3]))
         {
             String name = documentFile.getName();
             String substring = name.substring(0, name.lastIndexOf('.'));

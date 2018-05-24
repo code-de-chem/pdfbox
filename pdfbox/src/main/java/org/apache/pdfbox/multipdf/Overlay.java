@@ -32,6 +32,7 @@ import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.cos.COSStream;
+import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
@@ -291,14 +292,11 @@ public class Overlay
         {
             for (COSStream contentStream : contentStreams)
             {
-                InputStream in = contentStream.createInputStream();
-                byte[] buf = new byte[2048];
-                int n;
-                while ((n = in.read(buf)) > 0)
+                try (InputStream in = contentStream.createInputStream())
                 {
-                    out.write(buf, 0, n);
+                    IOUtils.copy(in, out);
+                    out.flush();
                 }
-                out.flush();
             }
         }
         return concatStream;
@@ -439,18 +437,39 @@ public class Overlay
             throws IOException
     {
         // create a new content stream that executes the XObject content
-        PDRectangle pageMediaBox = page.getMediaBox();
-        float hShift = (pageMediaBox.getWidth() - layoutPage.overlayMediaBox.getWidth()) / 2.0f;
-        float vShift = (pageMediaBox.getHeight() - layoutPage.overlayMediaBox.getHeight()) / 2.0f;
         StringBuilder overlayStream = new StringBuilder();
-        overlayStream.append("q\nq 1 0 0 1 ");
-        overlayStream.append(float2String(hShift));
-        overlayStream.append(" ");
-        overlayStream.append(float2String(vShift) );
-        overlayStream.append(" cm /");
+        overlayStream.append("q\nq\n");
+        AffineTransform at = calculateAffineTransform(page, layoutPage.overlayMediaBox);
+        double[] flatmatrix = new double[6];
+        at.getMatrix(flatmatrix);
+        for (double v : flatmatrix)
+        {
+            overlayStream.append(float2String((float) v));
+            overlayStream.append(" ");
+        }
+        overlayStream.append(" cm\n/");
         overlayStream.append(xObjectId.getName());
         overlayStream.append(" Do Q\nQ\n");
         return createStream(overlayStream.toString());
+    }
+
+    /**
+     * Calculate the transform to be used when positioning the overlay. The default implementation
+     * centers on the destination. Override this method to do your own, e.g. move to a corner, or
+     * rotate.
+     *
+     * @param page The page that will get the overlay.
+     * @param overlayMediaBox The overlay media box.
+     * @return The affine transform to be used.
+     */
+    protected AffineTransform calculateAffineTransform(PDPage page, PDRectangle overlayMediaBox)
+    {
+        AffineTransform at = new AffineTransform();
+        PDRectangle pageMediaBox = page.getMediaBox();
+        float hShift = (pageMediaBox.getWidth() - overlayMediaBox.getWidth()) / 2.0f;
+        float vShift = (pageMediaBox.getHeight() - overlayMediaBox.getHeight()) / 2.0f;
+        at.translate(hShift, vShift);
+        return at;
     }
 
     private String float2String(float floatValue)
